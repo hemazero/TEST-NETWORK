@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 import requests
 from io import BytesIO
 
-# --- Web Server ---
+# --- Web Server for Uptime ---
 app = Flask('')
 @app.route('/')
 def home(): return "SYSTEM ONLINE"
@@ -18,31 +18,43 @@ def run():
     app.run(host='0.0.0.0', port=port)
 
 # --- Bot Config ---
+# التأكد من تفعيل جميع الـ Intents بما فيها Members
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="-", intents=intents, help_command=None)
 
-# --- IDs ---
+# --- IDs (تأكد منها مرة أخرى) ---
 WELCOME_CHANNEL_ID = 1476043469519716455
 AUTO_ROLE_ID = 1476035055565410396
 ALLOWED_ROLE_ID = 1476034819925217381
 
 @bot.event
 async def on_ready():
-    print(f'✅ {bot.user.name} is ready')
+    print(f'✅ {bot.user.name} is ready!')
+    print(f'✅ Members Intent Enabled: {bot.intents.members}')
 
 # --- Welcome Image Function (TV Style) ---
 def create_welcome_image(member):
     width, height = 600, 250
     image = Image.new('RGB', (width, height), color='black')
+    
+    # تحميل صورة العضو
     avatar_url = member.display_avatar.url
     response = requests.get(avatar_url)
     avatar_image = Image.open(BytesIO(response.content)).convert("RGBA")
+    
+    # تعديل حجم الصورة
     avatar_size = 180 
     avatar_image = avatar_image.resize((avatar_size, avatar_size), Image.Resampling.LANCZOS)
+    
+    # صنع قناع دائري للصورة
     mask = Image.new('L', (avatar_size, avatar_size), 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
+    
+    # لصق الصورة في المنتصف
     image.paste(avatar_image, ((width - avatar_size) // 2, (height - avatar_size) // 2), mask)
+    
+    # حفظ في الذاكرة
     img_byte_arr = BytesIO()
     image.save(img_byte_arr, format='PNG')
     img_byte_arr.seek(0)
@@ -51,18 +63,34 @@ def create_welcome_image(member):
 # --- Events ---
 @bot.event
 async def on_member_join(member):
+    print(f'📩 Member joined: {member.name}') # تسجيل الدخول في الـ Logs
+    
+    # 1. إعطاء الرتبة
     role = member.guild.get_role(AUTO_ROLE_ID)
-    if role: await member.add_roles(role)
+    if role: 
+        try:
+            await member.add_roles(role)
+            print(f'✅ Role added to {member.name}')
+        except Exception as e:
+            print(f'❌ Failed to add role: {e}')
+    
+    # 2. إرسال الترحيب
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
     if channel:
-        img = create_welcome_image(member)
-        file = discord.File(img, filename='welcome.png')
-        await channel.send(f"**Welcome {member.mention}**\n**You are member #{len(member.guild.members)}**", file=file)
+        try:
+            img = create_welcome_image(member)
+            file = discord.File(img, filename='welcome.png')
+            await channel.send(f"**Welcome {member.mention}**\n**You are member #{len(member.guild.members)}**", file=file)
+            print(f'✅ Welcome message sent to {member.name}')
+        except Exception as e:
+            print(f'❌ Failed to send welcome: {e}')
+    else:
+        print(f'❌ Welcome channel not found: {WELCOME_CHANNEL_ID}')
 
 @bot.event
 async def on_message(message):
     if message.author.bot: return
-
+    
     if message.content.lower() == "hi":
         await message.channel.send("hi 😊")
     
