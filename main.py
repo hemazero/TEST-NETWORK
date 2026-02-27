@@ -14,9 +14,8 @@ def run():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
-# --- Bot Config (Prefix ONLY '-') ---
+# --- Bot Config ---
 intents = discord.Intents.all()
-# Disable help_command to stop the bot from replying with "No Category"
 bot = commands.Bot(command_prefix="-", intents=intents, help_command=None)
 
 WELCOME_CHANNEL_ID = 1476043469519716455
@@ -27,7 +26,18 @@ ALLOWED_ROLE_ID = 1476034819925217381
 async def on_ready():
     print(f'✅ Logged in as: {bot.user.name}')
 
-# --- Welcome (Clean Embed) ---
+# --- Function to generate Welcome Embed (Reusable) ---
+def create_welcome_embed(member):
+    embed = discord.Embed(
+        title="Welcome to the Server!",
+        description=f"Hello {member.mention}, we are glad to have you here.",
+        color=0x3498db # Blue
+    )
+    embed.set_thumbnail(url=member.display_avatar.url)
+    embed.set_footer(text="TEST NETWORK System")
+    return embed
+
+# --- Real Welcome Event ---
 @bot.event
 async def on_member_join(member):
     role = member.guild.get_role(AUTO_ROLE_ID)
@@ -37,30 +47,30 @@ async def on_member_join(member):
 
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
     if channel:
-        embed = discord.Embed(
-            title="Welcome to the Server!",
-            description=f"Hello {member.mention}, we are glad to have you here.",
-            color=0x3498db # Blue
-        )
-        embed.set_thumbnail(url=member.display_avatar.url)
+        embed = create_welcome_embed(member)
         await channel.send(embed=embed)
 
-# --- Info Command (Standard Bold Fonts for Stability) ---
+# --- Command: Test Welcome ---
+@bot.command(name="testwelcome")
+async def test_welcome(ctx):
+    # This sends the welcome embed using the command author's info
+    embed = create_welcome_embed(ctx.author)
+    await ctx.send("🔍 **Testing Welcome Message:**")
+    await ctx.send(embed=embed)
+
+# --- Info Command ---
 @bot.command(name="info")
 async def info(ctx):
-    # Using standard Discord Markdown (**) for maximum compatibility
     embed = discord.Embed(
         title="🛠 SERVER DISCOVERY | TEST ENVIRONMENT",
         color=0xf1c40f, # Gold
         timestamp=datetime.utcnow()
     )
-    
     embed.add_field(
         name="🧪 Overview", 
         value="Welcome to TEST. > This is a private, dedicated environment used exclusively for Discord Bot Development and feature prototyping.", 
         inline=False
     )
-    
     embed.add_field(
         name="🎯 Primary Objectives", 
         value=(
@@ -89,15 +99,15 @@ async def time_cmd(ctx):
 async def clear10(ctx):
     if any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles):
         await ctx.channel.purge(limit=11)
-        await ctx.send("🧹 **Deleted 10 messages.**", delete_after=3)
+        await ctx.send("Sweep success! 🧹", delete_after=3)
 
 @bot.command(name="clearall")
 async def clearall(ctx):
     if any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles):
         await ctx.channel.purge(limit=100)
-        await ctx.send("🗑️ **Channel cleared.**", delete_after=3)
+        await ctx.send("Channel reset! 🗑️", delete_after=3)
 
-# --- Ignore all unknown commands and errors ---
+# --- Silence Errors ---
 @bot.event
 async def on_command_error(ctx, error):
     pass
