@@ -3,4 +3,4 @@ Pillow
 requests
 flask
 googletrans==4.0.0-rc1
-sed -i 's/import cgi/import html/g' /app/.venv/lib/python3.13/site-packages/httpx/_models.py
+httpx==0.27.0
