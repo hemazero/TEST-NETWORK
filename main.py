@@ -21,7 +21,7 @@ def run():
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="-", intents=intents, help_command=None)
 
-# --- IDs (Ensure these are correct) ---
+# --- IDs ---
 WELCOME_CHANNEL_ID = 1476043469519716455
 AUTO_ROLE_ID = 1476035055565410396
 ALLOWED_ROLE_ID = 1476034819925217381
@@ -30,10 +30,10 @@ ALLOWED_ROLE_ID = 1476034819925217381
 async def on_ready():
     print(f'✅ Logged in as: {bot.user.name}')
 
-# --- Function to generate Welcome Image ---
+# --- Function to generate Small, English Welcome Image ---
 def create_welcome_image(member, member_count):
-    # 1. Create a black background image (800x400)
-    width, height = 800, 400
+    # 1. Create a SMALLER black background image (800x250)
+    width, height = 800, 250
     image = Image.new('RGB', (width, height), color='black')
     draw = ImageDraw.Draw(image)
 
@@ -42,8 +42,8 @@ def create_welcome_image(member, member_count):
     response = requests.get(avatar_url)
     avatar_image = Image.open(BytesIO(response.content)).convert("RGBA")
     
-    # Resize avatar
-    avatar_size = 150
+    # Resize avatar to a suitable small size
+    avatar_size = 100
     avatar_image = avatar_image.resize((avatar_size, avatar_size), Image.Resampling.LANCZOS)
 
     # Make avatar circular
@@ -53,39 +53,47 @@ def create_welcome_image(member, member_count):
     
     # Paste avatar onto background
     avatar_x = (width - avatar_size) // 2
-    avatar_y = (height - avatar_size) // 2 - 50 # Slightly above center
+    avatar_y = 30 # Position from top
     image.paste(avatar_image, (avatar_x, avatar_y), mask)
 
-    # 3. Add Welcome Text
-    # Define fonts - attempt to load a font, fallback to default
+    # 3. Add SMALLER English Welcome Text
+    # Use standard bold font, with fallbacks
     try:
-        # Update path to a valid ttf font file if needed (e.g., 'arial.ttf' for Arabic support)
-        font_path = 'arial.ttf' 
-        font_title = ImageFont.truetype(font_path, 40)
-        font_body = ImageFont.truetype(font_path, 30)
+        # For standard text, we can use a basic font or system font
+        # Update path to a valid ttf font file if a specific font is desired
+        # font_path = 'arial.ttf'
+        # font_name = ImageFont.truetype(font_path, 30)
+        # font_count = ImageFont.truetype(font_path, 20)
+        
+        # Using load_default which is very small, we will use a workaround to load a common sans-serif font
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" # Example common path on linux
+        if not os.path.exists(font_path): font_path = 'arial.ttf' # Common path on windows
+        font_name = ImageFont.truetype(font_path, 30)
+        font_count = ImageFont.truetype(font_path, 20)
     except IOError:
-        print("Warning: Standard font not found, using default. Arabic text might not render correctly.")
-        font_title = ImageFont.load_default()
-        font_body = ImageFont.load_default()
+        print("Warning: Common fonts not found, using default. Visuals might vary.")
+        font_name = ImageFont.load_default()
+        font_count = ImageFont.load_default()
 
     # Define text content
-    text_title = f"مرحبا ({member.name})"
-    text_body = f"انت العضو رقم {member_count}"
+    username = member.global_name if member.global_name else member.name # Get name without brackets
+    text_name = f"Welcome {username}"
+    text_count = f"You are member #{member_count}"
 
     # Calculate text positions to center them
-    title_bbox = draw.textbbox((0, 0), text_title, font=font_title)
-    title_width = title_bbox[2] - title_bbox[0]
-    title_x = (width - title_width) // 2
-    title_y = avatar_y + avatar_size + 20
+    name_bbox = draw.textbbox((0, 0), text_name, font=font_name)
+    name_width = name_bbox[2] - name_bbox[0]
+    name_x = (width - name_width) // 2
+    name_y = avatar_y + avatar_size + 20 # Below avatar
 
-    body_bbox = draw.textbbox((0, 0), text_body, font=font_body)
-    body_width = body_bbox[2] - body_bbox[0]
-    body_x = (width - body_width) // 2
-    body_y = title_y + 50
+    count_bbox = draw.textbbox((0, 0), text_count, font=font_count)
+    count_width = count_bbox[2] - count_bbox[0]
+    count_x = (width - count_width) // 2
+    count_y = name_y + 40 # Below name
 
-    # Draw text on image
-    draw.text((title_x, title_y), text_title, font=font_title, fill='white')
-    draw.text((body_x, body_y), text_body, font=font_body, fill='white')
+    # Draw text on image with standardized bold font
+    draw.text((name_x, name_y), text_name, font=font_name, fill='white')
+    draw.text((count_x, count_y), text_count, font=font_count, fill='white')
 
     # 4. Save to BytesIO to send
     img_byte_arr = BytesIO()
@@ -110,21 +118,21 @@ async def on_member_join(member):
         welcome_file = create_welcome_image(member, member_count)
         # Send image as file
         file = discord.File(welcome_file, filename='welcome.png')
-        await channel.send(f"Welcome {member.mention}!", file=file)
+        await channel.send(f"Welcome to the server, {member.mention}!", file=file)
 
 # --- Command: Test Welcome Image ---
 @bot.command(name="testwelcome")
 async def test_welcome(ctx):
     # This sends the welcome image using the command author's info for testing
     member_count = len(ctx.guild.members)
-    await ctx.send("🔍 **Testing Welcome Image:**")
+    await ctx.send("🔍 **Testing Small, English Welcome Image:**")
     # Generate image
     welcome_file = create_welcome_image(ctx.author, member_count)
     # Send image as file
     file = discord.File(welcome_file, filename='welcome.png')
     await ctx.send(file=file)
 
-# --- Info Command (Static Embed with standard formatting) ---
+# --- Other Commands (Static Embeds for stability) ---
 @bot.command(name="info")
 async def info(ctx):
     embed = discord.Embed(
@@ -149,7 +157,6 @@ async def info(ctx):
     )
     await ctx.send(embed=embed)
 
-# --- Time Command ---
 @bot.command(name="time")
 async def time_cmd(ctx):
     member = ctx.author
@@ -160,7 +167,6 @@ async def time_cmd(ctx):
     embed.add_field(name="Account Created", value=f"**{created}**", inline=True)
     await ctx.send(embed=embed)
 
-# --- Clear Commands (Restricted by Role ID) ---
 @bot.command(name="clear10")
 async def clear10(ctx):
     if any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles):
