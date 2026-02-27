@@ -3,7 +3,7 @@ from discord.ext import commands
 import os
 from flask import Flask
 from threading import Thread
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 import requests
 from io import BytesIO
 
@@ -29,44 +29,28 @@ ALLOWED_ROLE_ID = 1476034819925217381
 async def on_ready():
     print(f'✅ Logged in as: {bot.user.name}')
 
-# --- Function to generate Square Image with WELCOME text inside ---
+# --- Function to generate ONLY Square Avatar (No text inside) ---
 def create_welcome_image(member):
-    # 1. Create a Square black background (400x400)
+    # Create a Square black background
     width, height = 400, 400
     image = Image.new('RGB', (width, height), color='black')
-    draw = ImageDraw.Draw(image)
     
-    # 2. Process Avatar
+    # Process Avatar
     avatar_url = member.display_avatar.url
     response = requests.get(avatar_url)
     avatar_image = Image.open(BytesIO(response.content)).convert("RGBA")
     
-    avatar_size = 180
+    avatar_size = 250 # Larger avatar since there is no text
     avatar_image = avatar_image.resize((avatar_size, avatar_size), Image.Resampling.LANCZOS)
 
     mask = Image.new('L', (avatar_size, avatar_size), 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
     
+    # Center the avatar perfectly in the square
     avatar_x = (width - avatar_size) // 2
-    avatar_y = 60 # Pushed slightly up to make room for WELCOME
+    avatar_y = (height - avatar_size) // 2
     image.paste(avatar_image, (avatar_x, avatar_y), mask)
-
-    # 3. Add WELCOME text INSIDE the image
-    try:
-        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        if not os.path.exists(font_path): font_path = 'arial.ttf'
-        font = ImageFont.truetype(font_path, 45)
-    except:
-        font = ImageFont.load_default()
-
-    text = "WELCOME"
-    text_bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = text_bbox[2] - text_bbox[0]
-    text_x = (width - text_width) // 2
-    text_y = avatar_y + avatar_size + 30
-    
-    draw.text((text_x, text_y), text, font=font, fill='white')
 
     img_byte_arr = BytesIO()
     image.save(img_byte_arr, format='PNG')
@@ -87,10 +71,9 @@ async def on_member_join(member):
         welcome_file = create_welcome_image(member)
         file = discord.File(welcome_file, filename='welcome.png')
         
-        # Send Name and Member Count as text BELOW the image
-        username = member.global_name if member.global_name else member.name
+        # English Text with Mention and Member Count
         await channel.send(
-            f"**Welcome {username}**\n**You are member #{member_count}**", 
+            f"**Welcome {member.mention}**\n**You are member #{member_count}**", 
             file=file
         )
 
@@ -101,9 +84,9 @@ async def test_welcome(ctx):
     welcome_file = create_welcome_image(ctx.author)
     file = discord.File(welcome_file, filename='welcome.png')
     
-    username = ctx.author.global_name if ctx.author.global_name else ctx.author.name
+    # Testing with mention
     await ctx.send(
-        f"**Welcome {username}**\n**You are member #{member_count}**", 
+        f"**Welcome {ctx.author.mention}**\n**You are member #{member_count}**", 
         file=file
     )
 
