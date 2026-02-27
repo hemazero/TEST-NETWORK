@@ -72,45 +72,52 @@ async def on_message(message):
 # --- Organized Help Menu ---
 @bot.command(name="?")
 async def help_menu(ctx):
-    embed = discord.Embed(
-        title="✨ TEST NETWORK Commands", 
-        description="Here is a list of available commands and how to use them:", 
-        color=0x3498db
-    )
+    embed = discord.Embed(title="✨ TEST NETWORK Commands", color=0x3498db)
     
     embed.add_field(
         name="🎮 **General**", 
-        value=(
-            "`-?` : Shows this menu.\n"
-            "`-ping` : Checks bot latency.\n"
-            "`-avatar @user` : View profile picture."
-        ), 
+        value="`-?`, `-ping`, `-avatar @user`, `-boost`", 
         inline=False
     )
     
     embed.add_field(
         name="ℹ️ **Information**", 
-        value=(
-            "`-info` : Server development info.\n"
-            "`-time` : Check account/join dates."
-        ), 
+        value="`-info`, `-time`", 
         inline=False
     )
     
     embed.add_field(
         name="🛠️ **Admin Tools**", 
-        value=(
-            "`-clear10` : Deletes last 10 messages.\n"
-            "`-clearall` : Clears recent history.\n"
-            "`-testwelcome` : Preview welcome image."
-        ), 
+        value="`-clear10`, `-clearall`, `-testwelcome`", 
         inline=False
     )
     
-    embed.set_footer(text="All commands must start with '-' prefix.")
     await ctx.send(embed=embed)
 
-# --- Rest of Commands ---
+# --- Boost Command ---
+@bot.command(name="boost")
+async def boost(ctx):
+    embed = discord.Embed(
+        title="🚀 Server Boost",
+        description="Help us reach new levels! Every boost unlocks amazing perks for everyone.",
+        color=0xff73fa # Boost Pink Color
+    )
+    embed.add_field(name="How to boost?", value="Click on the server name and select **'Server Boost'**.", inline=False)
+    embed.set_footer(text="Thank you for supporting us!")
+    await ctx.send(embed=embed)
+
+# --- Rest of Commands (With Role Protection) ---
+
+@bot.command(name="testwelcome")
+async def test_welcome(ctx):
+    # تقييد الأمر للإدارة فقط
+    if any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles):
+        img = create_welcome_image(ctx.author)
+        file = discord.File(img, filename='welcome.png')
+        await ctx.send(f"**Welcome {ctx.author.mention}**\n**You are member #{len(ctx.guild.members)}**", file=file)
+    else:
+        await ctx.send("❌ Access Denied: Admin role required.", delete_after=3)
+
 @bot.command(name="avatar")
 async def avatar(ctx, member: discord.Member = None):
     member = member or ctx.author
@@ -148,12 +155,6 @@ async def clearall(ctx):
     if any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles):
         await ctx.channel.purge(limit=100)
         await ctx.send("Channel reset! 🗑️", delete_after=3)
-
-@bot.command(name="testwelcome")
-async def test_welcome(ctx):
-    img = create_welcome_image(ctx.author)
-    file = discord.File(img, filename='welcome.png')
-    await ctx.send(f"**Welcome {ctx.author.mention}**\n**You are member #{len(ctx.guild.members)}**", file=file)
 
 @bot.event
 async def on_command_error(ctx, error): pass
