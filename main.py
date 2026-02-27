@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import os
+from datetime import datetime
 from flask import Flask
 from threading import Thread
 from PIL import Image, ImageDraw
@@ -31,16 +32,13 @@ async def on_ready():
 
 # --- Function to generate Widescreen Avatar (TV Style) ---
 def create_welcome_image(member):
-    # Modified dimensions to be wider and shorter (TV style: 600x250)
     width, height = 600, 250
     image = Image.new('RGB', (width, height), color='black')
     
-    # Process Avatar
     avatar_url = member.display_avatar.url
     response = requests.get(avatar_url)
     avatar_image = Image.open(BytesIO(response.content)).convert("RGBA")
     
-    # Adjusted avatar size to fit the shorter height
     avatar_size = 180 
     avatar_image = avatar_image.resize((avatar_size, avatar_size), Image.Resampling.LANCZOS)
 
@@ -48,7 +46,6 @@ def create_welcome_image(member):
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
     
-    # Center the avatar perfectly in the widescreen rectangle
     avatar_x = (width - avatar_size) // 2
     avatar_y = (height - avatar_size) // 2
     image.paste(avatar_image, (avatar_x, avatar_y), mask)
@@ -71,24 +68,55 @@ async def on_member_join(member):
         member_count = len(member.guild.members)
         welcome_file = create_welcome_image(member)
         file = discord.File(welcome_file, filename='welcome.png')
-        
-        # Mentioning the user with clear English text below the image
-        await channel.send(
-            f"**Welcome {member.mention}**\n**You are member #{member_count}**", 
-            file=file
-        )
+        await channel.send(f"**Welcome {member.mention}**\n**You are member #{member_count}**", file=file)
 
-# --- Test Command ---
+@bot.event
+async def on_message(message):
+    if message.author.bot: return
+
+    # يرد على رسالة "hi" بإيموجي سعيد
+    if message.content.lower() == "hi":
+        await message.channel.send("hi 😊")
+
+    await bot.process_commands(message)
+
+# --- Commands RE-ADDED ---
+
+@bot.command(name="info")
+async def info(ctx):
+    embed = discord.Embed(
+        title="🛠 SERVER DISCOVERY | TEST ENVIRONMENT",
+        color=0xf1c40f,
+        timestamp=datetime.utcnow()
+    )
+    embed.add_field(
+        name="🧪 Overview", 
+        value="Welcome to TEST. > This is a private environment for Bot Development.", 
+        inline=False
+    )
+    embed.add_field(
+        name="🎯 Primary Objectives", 
+        value="• **Beta Testing**\n• **UI/UX Design**\n• **Debugging**", 
+        inline=False
+    )
+    await ctx.send(embed=embed)
+
+@bot.command(name="time")
+async def time_cmd(ctx):
+    member = ctx.author
+    joined = member.joined_at.strftime("%Y/%m/%d")
+    created = member.created_at.strftime("%Y/%m/%d")
+    embed = discord.Embed(title="👤 User Time Info", color=0x3498db)
+    embed.add_field(name="Joined Server", value=f"**{joined}**", inline=True)
+    embed.add_field(name="Account Created", value=f"**{created}**", inline=True)
+    await ctx.send(embed=embed)
+
 @bot.command(name="testwelcome")
 async def test_welcome(ctx):
     member_count = len(ctx.guild.members)
     welcome_file = create_welcome_image(ctx.author)
     file = discord.File(welcome_file, filename='welcome.png')
-    
-    await ctx.send(
-        f"**Welcome {ctx.author.mention}**\n**You are member #{member_count}**", 
-        file=file
-    )
+    await ctx.send(f"**Welcome {ctx.author.mention}**\n**You are member #{member_count}**", file=file)
 
 # --- Clear Commands ---
 @bot.command(name="clear10")
