@@ -7,8 +7,6 @@ from threading import Thread
 from PIL import Image, ImageDraw
 import requests
 from io import BytesIO
-# مكتبة الترجمة (يجب تحديثها في requirements.txt)
-from googletrans import Translator 
 
 # --- Web Server ---
 app = Flask('')
@@ -27,10 +25,6 @@ bot = commands.Bot(command_prefix="-", intents=intents, help_command=None)
 WELCOME_CHANNEL_ID = 1476043469519716455
 AUTO_ROLE_ID = 1476035055565410396
 ALLOWED_ROLE_ID = 1476034819925217381
-# الروم الذي سيتم فيه الترجمة الفورية
-TRANSLATION_CHANNEL_ID = 1476043469519716455 
-
-translator = Translator()
 
 @bot.event
 async def on_ready():
@@ -69,20 +63,6 @@ async def on_member_join(member):
 async def on_message(message):
     if message.author.bot: return
 
-    # --- ميزة الـ Innovative: الترجمة الفورية ---
-    if message.channel.id == TRANSLATION_CHANNEL_ID:
-        try:
-            detected = translator.detect(message.content)
-            # إذا كانت اللغة ليست إنجليزية
-            if detected.lang != 'en':
-                translated = translator.translate(message.content, dest='en')
-                # مسح الرسالة الأصلية
-                await message.delete()
-                # إرسال الترجمة بتنسيق منسق
-                await message.channel.send(f"🌐 **{message.author.name}** (Translated): {translated.text}")
-        except:
-            pass # في حال فشل الترجمة يمر الأمر
-
     if message.content.lower() == "hi":
         await message.channel.send("hi 😊")
     
@@ -100,7 +80,6 @@ async def help_menu(ctx):
     embed.add_field(name="🎮 General", value="`-?`, `-ping`, `-avatar`, `-boost`", inline=False)
     embed.add_field(name="ℹ️ Information", value="`-info`, `-time`", inline=False)
     embed.add_field(name="🛠️ Admin Tools", value="`-clear10`, `-testwelcome`", inline=False)
-    embed.set_footer(text="Live Translation is Active in specific channel!")
     await ctx.send(embed=embed)
 
 # --- Commands ---
