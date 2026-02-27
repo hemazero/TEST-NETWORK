@@ -29,10 +29,10 @@ ALLOWED_ROLE_ID = 1476034819925217381
 async def on_ready():
     print(f'✅ Logged in as: {bot.user.name}')
 
-# --- Function to generate ONLY Square Avatar (No text inside) ---
+# --- Function to generate Widescreen Avatar (TV Style) ---
 def create_welcome_image(member):
-    # Create a Square black background
-    width, height = 400, 400
+    # Modified dimensions to be wider and shorter (TV style: 600x250)
+    width, height = 600, 250
     image = Image.new('RGB', (width, height), color='black')
     
     # Process Avatar
@@ -40,14 +40,15 @@ def create_welcome_image(member):
     response = requests.get(avatar_url)
     avatar_image = Image.open(BytesIO(response.content)).convert("RGBA")
     
-    avatar_size = 250 # Larger avatar since there is no text
+    # Adjusted avatar size to fit the shorter height
+    avatar_size = 180 
     avatar_image = avatar_image.resize((avatar_size, avatar_size), Image.Resampling.LANCZOS)
 
     mask = Image.new('L', (avatar_size, avatar_size), 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
     
-    # Center the avatar perfectly in the square
+    # Center the avatar perfectly in the widescreen rectangle
     avatar_x = (width - avatar_size) // 2
     avatar_y = (height - avatar_size) // 2
     image.paste(avatar_image, (avatar_x, avatar_y), mask)
@@ -71,7 +72,7 @@ async def on_member_join(member):
         welcome_file = create_welcome_image(member)
         file = discord.File(welcome_file, filename='welcome.png')
         
-        # English Text with Mention and Member Count
+        # Mentioning the user with clear English text below the image
         await channel.send(
             f"**Welcome {member.mention}**\n**You are member #{member_count}**", 
             file=file
@@ -84,7 +85,6 @@ async def test_welcome(ctx):
     welcome_file = create_welcome_image(ctx.author)
     file = discord.File(welcome_file, filename='welcome.png')
     
-    # Testing with mention
     await ctx.send(
         f"**Welcome {ctx.author.mention}**\n**You are member #{member_count}**", 
         file=file
