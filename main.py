@@ -25,13 +25,12 @@ bot = commands.Bot(command_prefix="-", intents=intents, help_command=None)
 WELCOME_CHANNEL_ID = 1476043469519716455
 AUTO_ROLE_ID = 1476035055565410396
 ALLOWED_ROLE_ID = 1476034819925217381
-LOG_CHANNEL_ID = 1476043469519716455 # يمكنك تغييره لروم خاص بالسجلات
 
 @bot.event
 async def on_ready():
-    print(f'✅ {bot.user.name} is fully operational')
+    print(f'✅ {bot.user.name} is ready')
 
-# --- Welcome Image Function (TV Style) ---
+# --- Welcome Image Function ---
 def create_welcome_image(member):
     width, height = 600, 250
     image = Image.new('RGB', (width, height), color='black')
@@ -63,46 +62,59 @@ async def on_member_join(member):
 @bot.event
 async def on_message(message):
     if message.author.bot: return
-
-    # 1. Auto-Reply
     if message.content.lower() == "hi":
         await message.channel.send("hi 😊")
-
-    # 2. Auto-Mod (Link Protection)
     if "http" in message.content.lower() and not any(role.id == ALLOWED_ROLE_ID for role in message.author.roles):
         await message.delete()
         await message.channel.send(f"{message.author.mention}, links are not allowed!", delete_after=3)
-
     await bot.process_commands(message)
 
-# --- New Commands ---
-
+# --- Organized Help Menu ---
 @bot.command(name="?")
 async def help_menu(ctx):
-    embed = discord.Embed(title="📖 Bot Help Menu", color=discord.Color.blue())
-    embed.add_field(name="-info", value="Server development details.", inline=True)
-    embed.add_field(name="-time", value="Your account age info.", inline=True)
-    embed.add_field(name="-server", value="General server statistics.", inline=True)
-    embed.add_field(name="-avatar @user", value="Show someone's profile picture.", inline=True)
-    embed.add_field(name="-ping", value="Check bot response speed.", inline=True)
-    embed.add_field(name="-clear10 / -clearall", value="Admin clean up tools.", inline=False)
-    embed.set_footer(text="Use the prefix '-' before each command.")
+    embed = discord.Embed(
+        title="✨ TEST NETWORK Commands", 
+        description="Here is a list of available commands and how to use them:", 
+        color=0x3498db
+    )
+    
+    embed.add_field(
+        name="🎮 **General**", 
+        value=(
+            "`-?` : Shows this menu.\n"
+            "`-ping` : Checks bot latency.\n"
+            "`-avatar @user` : View profile picture."
+        ), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="ℹ️ **Information**", 
+        value=(
+            "`-info` : Server development info.\n"
+            "`-time` : Check account/join dates."
+        ), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🛠️ **Admin Tools**", 
+        value=(
+            "`-clear10` : Deletes last 10 messages.\n"
+            "`-clearall` : Clears recent history.\n"
+            "`-testwelcome` : Preview welcome image."
+        ), 
+        inline=False
+    )
+    
+    embed.set_footer(text="All commands must start with '-' prefix.")
     await ctx.send(embed=embed)
 
-@bot.command(name="server")
-async def server_info(ctx):
-    guild = ctx.guild
-    embed = discord.Embed(title=f"📊 {guild.name} Stats", color=discord.Color.green())
-    embed.add_field(name="Owner", value=guild.owner.mention, inline=True)
-    embed.add_field(name="Members", value=guild.member_count, inline=True)
-    embed.add_field(name="Channels", value=len(guild.channels), inline=True)
-    embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
-    await ctx.send(embed=embed)
-
+# --- Rest of Commands ---
 @bot.command(name="avatar")
 async def avatar(ctx, member: discord.Member = None):
     member = member or ctx.author
-    embed = discord.Embed(title=f"{member.name}'s Avatar", color=discord.Color.random())
+    embed = discord.Embed(title=f"Avatar of {member.name}", color=0x000000)
     embed.set_image(url=member.display_avatar.url)
     await ctx.send(embed=embed)
 
@@ -110,7 +122,6 @@ async def avatar(ctx, member: discord.Member = None):
 async def ping(ctx):
     await ctx.send(f"🏓 Pong! {round(bot.latency * 1000)}ms")
 
-# --- Original Commands ---
 @bot.command(name="info")
 async def info(ctx):
     embed = discord.Embed(title="🛠 SERVER DISCOVERY", color=0xf1c40f)
