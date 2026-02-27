@@ -7,6 +7,8 @@ from threading import Thread
 from PIL import Image, ImageDraw
 import requests
 from io import BytesIO
+# مكتبة الترجمة (يجب إضافتها لملف requirements.txt: googletrans==4.0.0-rc1)
+from googletrans import Translator 
 
 # --- Web Server ---
 app = Flask('')
@@ -25,12 +27,16 @@ bot = commands.Bot(command_prefix="-", intents=intents, help_command=None)
 WELCOME_CHANNEL_ID = 1476043469519716455
 AUTO_ROLE_ID = 1476035055565410396
 ALLOWED_ROLE_ID = 1476034819925217381
+# الروم الذي سيتم فيه الترجمة
+TRANSLATION_CHANNEL_ID = 1476043469519716455 
+
+translator = Translator()
 
 @bot.event
 async def on_ready():
     print(f'✅ {bot.user.name} is ready')
 
-# --- Welcome Image Function ---
+# --- Welcome Image Function (TV Style) ---
 def create_welcome_image(member):
     width, height = 600, 250
     image = Image.new('RGB', (width, height), color='black')
@@ -62,61 +68,55 @@ async def on_member_join(member):
 @bot.event
 async def on_message(message):
     if message.author.bot: return
+
+    # --- ميزة الـ Innovative: الترجمة الفورية ---
+    if message.channel.id == TRANSLATION_CHANNEL_ID:
+        try:
+            detected = translator.detect(message.content)
+            # إذا لم تكن اللغة إنجليزية
+            if detected.lang != 'en':
+                translated = translator.translate(message.content, dest='en')
+                # مسح الرسالة الأصلية
+                await message.delete()
+                # إرسال الترجمة
+                await message.channel.send(f"🌐 **{message.author.name}** (Translated): {translated.text}")
+        except:
+            pass # في حال فشل الترجمة يمر الأمر
+
     if message.content.lower() == "hi":
         await message.channel.send("hi 😊")
+    
+    # Auto-Mod (Link Protection)
     if "http" in message.content.lower() and not any(role.id == ALLOWED_ROLE_ID for role in message.author.roles):
         await message.delete()
         await message.channel.send(f"{message.author.mention}, links are not allowed!", delete_after=3)
+        
     await bot.process_commands(message)
 
 # --- Organized Help Menu ---
 @bot.command(name="?")
 async def help_menu(ctx):
     embed = discord.Embed(title="✨ TEST NETWORK Commands", color=0x3498db)
-    
-    embed.add_field(
-        name="🎮 **General**", 
-        value="`-?`, `-ping`, `-avatar @user`, `-boost`", 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="ℹ️ **Information**", 
-        value="`-info`, `-time`", 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="🛠️ **Admin Tools**", 
-        value="`-clear10`, `-clearall`, `-testwelcome`", 
-        inline=False
-    )
-    
+    embed.add_field(name="🎮 General", value="`-?`, `-ping`, `-avatar`, `-boost`", inline=False)
+    embed.add_field(name="ℹ️ Information", value="`-info`, `-time`", inline=False)
+    embed.add_field(name="🛠️ Admin Tools", value="`-clear10`, `-testwelcome`", inline=False)
+    embed.set_footer(text="Live Translation is Active!")
     await ctx.send(embed=embed)
 
-# --- Boost Command ---
+# --- Commands ---
 @bot.command(name="boost")
 async def boost(ctx):
-    embed = discord.Embed(
-        title="🚀 Server Boost",
-        description="Help us reach new levels! Every boost unlocks amazing perks for everyone.",
-        color=0xff73fa # Boost Pink Color
-    )
-    embed.add_field(name="How to boost?", value="Click on the server name and select **'Server Boost'**.", inline=False)
-    embed.set_footer(text="Thank you for supporting us!")
+    embed = discord.Embed(title="🚀 Server Boost", description="Click server name -> 'Server Boost'.", color=0xff73fa)
     await ctx.send(embed=embed)
-
-# --- Rest of Commands (With Role Protection) ---
 
 @bot.command(name="testwelcome")
 async def test_welcome(ctx):
-    # تقييد الأمر للإدارة فقط
     if any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles):
         img = create_welcome_image(ctx.author)
         file = discord.File(img, filename='welcome.png')
         await ctx.send(f"**Welcome {ctx.author.mention}**\n**You are member #{len(ctx.guild.members)}**", file=file)
     else:
-        await ctx.send("❌ Access Denied: Admin role required.", delete_after=3)
+        await ctx.send("❌ Access Denied.", delete_after=3)
 
 @bot.command(name="avatar")
 async def avatar(ctx, member: discord.Member = None):
@@ -149,12 +149,6 @@ async def clear10(ctx):
     if any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles):
         await ctx.channel.purge(limit=11)
         await ctx.send("Sweep success! 🧹", delete_after=3)
-
-@bot.command(name="clearall")
-async def clearall(ctx):
-    if any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles):
-        await ctx.channel.purge(limit=100)
-        await ctx.send("Channel reset! 🗑️", delete_after=3)
 
 @bot.event
 async def on_command_error(ctx, error): pass
