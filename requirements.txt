@@ -1,2 +1,1 @@
-discord.py
-flask
+pip install discord.py Pillow requests flask
